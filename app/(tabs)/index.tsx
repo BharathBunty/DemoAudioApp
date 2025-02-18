@@ -2,15 +2,20 @@ import { View, Text, Button, FlatList, ActivityIndicator, Alert , StyleSheet , T
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 
 const HomeScreen = () => {
 
     const [recordings, setRecordings] = useState([]);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-    useEffect(() => {
-        loadRecordings();
-    }, []);
+    useFocusEffect(
+      useCallback(() => {
+        loadRecordings(); // Re-fetch stored audio files
+      }, [])
+    );
 
     async function loadRecordings() {
         setLoading(true);
@@ -18,6 +23,7 @@ const HomeScreen = () => {
         if (storedRecordings) {
             setRecordings(JSON.parse(storedRecordings));
         }
+        console.log("recordings" , storedRecordings);
         setLoading(false);
     }
 
@@ -27,18 +33,29 @@ const HomeScreen = () => {
             <View style={styles.audioItem}>
                 <MaterialIcons name="mic" size={40} color="#94A3B8" style={styles.audioIcon} />
                 <View style={styles.audioInfo}>
-                    <Text style={styles.audioName}>{item.name}</Text>
+                    <Text style={styles.audioName}>{item.filename}</Text>
                     <Text style={styles.audioDetails}>{item.duration} - {item.size}</Text>
                 </View>
-                <TouchableOpacity style={styles.playButton}>
+                <TouchableOpacity style={styles.playButton} onPress={() => openAudioDetails(item)}>
                     <MaterialIcons name="play-arrow" size={30} color="#94A3B8" />
                 </TouchableOpacity>
             </View>
         )
     }
 
-    const openModal = () => {
-        
+    const openAudioDetails = (audio) => {
+      router.push({
+        pathname: '/AudioDetail',
+        params: {
+          filename: audio.filename,
+          duration: audio.duration,
+          uri: audio.uri,
+        },
+      });
+    }
+
+    const openRecordingScreen = () => {
+      router.push({ pathname: '/AudioRecord' })
     }
 
     return (
@@ -49,11 +66,11 @@ const HomeScreen = () => {
             </View>
             <FlatList
                 data={recordings}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item, index) => item.uri || index.toString()}
                 renderItem={({ item }) => renderItem(item)} 
             />
             <TouchableOpacity style={styles.fab}>
-                <MaterialIcons name="add" size={30} color="white"  onPress={openModal}/>
+                <MaterialIcons name="add" size={30} color="white"  onPress={openRecordingScreen}/>
             </TouchableOpacity>
         </SafeAreaView>
     );
