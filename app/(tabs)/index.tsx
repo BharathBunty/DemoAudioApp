@@ -1,74 +1,120 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { View, Text, Button, FlatList, ActivityIndicator, Alert , StyleSheet , TouchableOpacity, SafeAreaView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const HomeScreen = () => {
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    const [recordings, setRecordings] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        loadRecordings();
+    }, []);
+
+    async function loadRecordings() {
+        setLoading(true);
+        const storedRecordings = await AsyncStorage.getItem('recordings');
+        if (storedRecordings) {
+            setRecordings(JSON.parse(storedRecordings));
+        }
+        setLoading(false);
+    }
+
+
+    const renderItem = (item) => {
+        return(
+            <View style={styles.audioItem}>
+                <MaterialIcons name="mic" size={40} color="#94A3B8" style={styles.audioIcon} />
+                <View style={styles.audioInfo}>
+                    <Text style={styles.audioName}>{item.name}</Text>
+                    <Text style={styles.audioDetails}>{item.duration} - {item.size}</Text>
+                </View>
+                <TouchableOpacity style={styles.playButton}>
+                    <MaterialIcons name="play-arrow" size={30} color="#94A3B8" />
+                </TouchableOpacity>
+            </View>
+        )
+    }
+
+    const openModal = () => {
+        
+    }
+
+    return (
+        <SafeAreaView style={styles.container}>
+            {loading && <ActivityIndicator size="large" color="#0000ff" />}
+            <View style={styles.header}>
+                <Text style={styles.title}>Audio Library</Text>
+            </View>
+            <FlatList
+                data={recordings}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => renderItem(item)} 
+            />
+            <TouchableOpacity style={styles.fab}>
+                <MaterialIcons name="add" size={30} color="white"  onPress={openModal}/>
+            </TouchableOpacity>
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: 'white',
+        padding: 20,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '600',
+        textAlign: 'center',
+        color: '#333',
+    },
+    header: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        marginTop:20
+    },
+    audioItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 10,
+    },
+    audioIcon: {
+        marginRight: 15,
+    },
+    audioInfo: {
+        flex: 1,
+    },
+    audioName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#374151',
+    },
+    audioDetails: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    playButton: {
+        padding: 10,
+    },
+    fab: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+        backgroundColor: '#1E40AF',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 5,
+    },
 });
+
+export default HomeScreen;
