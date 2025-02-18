@@ -19,9 +19,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "android": {
-      "permissions": ["RECORD_AUDIO"]
-    }
+      "permissions": [
+          "RECORD_AUDIO",
+          "READ_EXTERNAL_STORAGE",
+          "WRITE_EXTERNAL_STORAGE"
+      ],
+      "package": "com.expouserbunty.DemoAudioApp"
     },
     "web": {
       "bundler": "metro",
@@ -42,6 +45,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6bb3bd93-dd93-4da9-a1f6-bf7c35ac35d9"
+      }
     }
   }
 }

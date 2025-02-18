@@ -58,3 +58,9 @@ app/
  ├── audio-details.js  (Screen for Audio Details)
  ├── audio-record.js  (Screen for Audio Recording)
 
+ -- AsyncStorage -> store the audio path and retrieving
+ -- FileSystem -> to create filesname auto-increment while saving
+ -- Expo-router -> for navigation
+ -- Vector-Icons -> for materials icons like audio play buttons
+ -- expo-document-picker -> to pick files from the devices
+
