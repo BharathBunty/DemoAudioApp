@@ -1,22 +1,35 @@
-import { View, Text, Button, FlatList, ActivityIndicator, Alert , TouchableOpacity , StyleSheet } from 'react-native';
+import { View, Text, Button, FlatList, ActivityIndicator, Alert , TouchableOpacity , StyleSheet, Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from "expo-sharing";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useRouter} from 'expo-router';
+import { useCallback } from 'react';
+
+type FileType = {
+    id: string;
+    name: any;
+    uri: any;
+}
 
 export default function Explore() {
 
-    const [files, setFiles] = useState([]);
+    const [files, setFiles] = useState<FileType[]>([]);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-    useEffect(() => {
-        loadFiles();
-    }, []);
+    useFocusEffect(
+      useCallback(() => {
+        loadFiles(); // Re-fetch stored files
+      }, [])
+    );
 
     async function loadFiles() {
         setLoading(true);
         const storedFiles = await AsyncStorage.getItem('files');
+        console.log('files' , storedFiles);
         if (storedFiles) {
             setFiles(JSON.parse(storedFiles));
         }
@@ -26,8 +39,9 @@ export default function Explore() {
     async function pickFile() {
         setLoading(true);
         let result = await DocumentPicker.getDocumentAsync({});
+        console.log('result ofupload', result)
         if (!result.canceled) {
-            const newFile = { id: Date.now().toString(), name: result.name, uri: result.uri };
+            const newFile = { id: Date.now().toString(), name: result.assets[0].name, uri: result.assets[0].uri };
             const updatedFiles = [...files, newFile];
             setFiles(updatedFiles);
             await AsyncStorage.setItem('files', JSON.stringify(updatedFiles));
@@ -36,17 +50,28 @@ export default function Explore() {
         setLoading(false);
     }
 
-    const renderItem = (doc) => {
+    const renderItem = (doc: FileType) => {
         return(
-            <TouchableOpacity 
-                key={doc.id}
-                style={styles.documentItem}
-                onPress={() => console.log('Open document:', doc.id)}
-            >
-                <Text style={styles.documentText}>{doc.name}</Text>
-            </TouchableOpacity>
+          <TouchableOpacity style={styles.listItem} onPress={() => openDocumentViewer(doc)}>
+            <MaterialIcons name="insert-drive-file" size={24} color="#8A7EA0" />
+            <Text style={styles.itemText}>{doc.name}</Text>
+          </TouchableOpacity>
         )
     }
+
+    const openDocumentViewer = async (doc: FileType) => {
+      try {
+        if (Platform.OS === "android") {
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(doc.uri, { mimeType: "application/pdf" });
+          }
+        } else {
+          Alert.alert("Opening PDFs internally is not supported on iOS.");
+        }
+      } catch (error) {
+        Alert.alert("Error opening PDF", error?.message );
+      }
+    } 
 
     return (
         <SafeAreaView style={styles.container}>
@@ -87,22 +112,6 @@ const styles = StyleSheet.create({
     listContainer: {
         padding: 16,
     },
-    documentItem: {
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 8,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    documentText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#444',
-    },
     fab: {
         position: 'absolute',
         right: 20,
@@ -114,5 +123,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 5,
+    },
+    listItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      margin:20
+    },
+    itemText: {
+      marginLeft: 10,
+      fontSize: 16,
+      color: '#444',
     },
 });

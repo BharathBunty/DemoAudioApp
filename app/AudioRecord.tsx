@@ -6,10 +6,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type RecordingObject = {
+  filename: string;
+  uri: string;
+  duration: string;
+  size: string;
+}
+
 export default function AudioRecord() {
-  const [recording, setRecording] = useState(null);
-  const [recordings, setRecordings] = useState([]);
-  const [permissionStatus, setPermissionStatus] = useState(null);
+  const [recording, setRecording] = useState<Audio.Recording>();
+  const [recordings, setRecordings] = useState<RecordingObject[]>([]);
+  const [permissionStatus, setPermissionStatus] = useState<Audio.PermissionStatus>();
 
   useEffect(() => {
     requestAudioPermission();
@@ -21,6 +28,32 @@ export default function AudioRecord() {
     if (status !== 'granted') {
       alert('Permission to access microphone is required!');
     }
+  };
+
+  const recordingOptions = {
+    android: {
+      extension: '.m4a',
+      outputFormat: Audio.RecordingOptionsPresets.HIGH_QUALITY.android.outputFormat,
+      audioEncoder: Audio.RecordingOptionsPresets.HIGH_QUALITY.android.audioEncoder,
+      sampleRate: 44100,
+      numberOfChannels: 2,
+      bitRate: 128000,
+    },
+    ios: {
+      extension: '.m4a',
+      outputFormat: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.outputFormat,
+      audioQuality: Audio.RecordingOptionsPresets.HIGH_QUALITY.ios.audioQuality,
+      sampleRate: 44100,
+      numberOfChannels: 2,
+      bitRate: 128000,
+      linearPCMBitDepth: 16,
+      linearPCMIsBigEndian: false,
+      linearPCMIsFloat: false,
+    },
+    web: {
+      mimeType: 'audio/webm',
+      bitsPerSecond: 128000,
+    },
   };
 
   const startRecording = async () => {
@@ -36,7 +69,7 @@ export default function AudioRecord() {
       });
 
       const newRecording = new Audio.Recording();
-      await newRecording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
+      await newRecording.prepareToRecordAsync(recordingOptions);
       await newRecording.startAsync();
       setRecording(newRecording);
       console.log('Recording started');
@@ -48,29 +81,28 @@ export default function AudioRecord() {
 
   const stopRecording = async () => {
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await recording?.stopAndUnloadAsync();
+      const uri = recording?.getURI();
       // Generate filename (audio1.mp3, audio2.mp3, etc.)
       const newFilename = await getNextAudioFilename();
       const newPath = `${FileSystem.documentDirectory}${newFilename}`;
 
       // Move the file to persistent storage
       await FileSystem.moveAsync({
-        from: uri,
+        from: uri ?? '',
         to: newPath,
       });
 
-      const { durationMillis } = await recording.getStatusAsync();
+      const status = await recording?.getStatusAsync();
       const fileInfo = await FileSystem.getInfoAsync(newPath);
 
       // Save metadata
-      const newAudio = { filename: newFilename, uri: newPath, duration: formatDuration(durationMillis) , size: formatFileSize(fileInfo.size), };
+      const newAudio = { filename: newFilename, uri: newPath, duration: formatDuration(status?.durationMillis ?? 0) , size: formatFileSize(fileInfo?.exists ? fileInfo?.size : 0), };
       const updatedRecordings = [...recordings, newAudio];
       setRecordings(updatedRecordings);
       await AsyncStorage.setItem('recordings', JSON.stringify(updatedRecordings));
-      setRecording(null);
+      setRecording(undefined);
       console.log('Recording saved at:', uri);
-      setRecording(null);
     } catch (error) {
       console.error('Error stopping recording:', error);
     }
@@ -82,13 +114,13 @@ export default function AudioRecord() {
     return `audio${recordingList.length + 1}.mp3`;
   };
 
-  const formatDuration = (millis) => {
+  const formatDuration = (millis: number) => {
     const minutes = Math.floor(millis / 60000);
     const seconds = Math.floor((millis % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
   };
 
-  const formatFileSize = (bytes) => {
+  const formatFileSize = (bytes: number) => {
     if (!bytes) return "0 MB";
     const kb = bytes / 1024;
     if (kb < 1024) return `${kb.toFixed(1)} KB`;

@@ -10,16 +10,20 @@ export default function AudioDetailsScreen() {
     const { filename, uri, duration } = useLocalSearchParams();
     const router = useRouter();
 
-    const [sound, setSound] = useState(null);
+    const [sound, setSound] = useState<Audio.Sound>();
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState('00:00');
 
-    const soundRef = useRef(null);
+    const soundRef = useRef<Audio.Sound>();
 
     useEffect(() => {
-        loadAudio();
-        return () => unloadAudio();
+      loadAudio();
+      return () => {
+        if (sound) {
+          sound.unloadAsync();
+        }
+      };
     }, []);
 
     const loadAudio = async () => {
@@ -30,20 +34,14 @@ export default function AudioDetailsScreen() {
         }
     };
 
-    const unloadAudio = async () => {
-        if (sound) {
-            await sound.unloadAsync();
-        }
-    };
-
-    const onPlaybackUpdate = (status) => {
+    const onPlaybackUpdate = (status: { isLoaded: any; positionMillis: number; durationMillis: number; }) => {
         if (status.isLoaded && status.positionMillis) {
             setProgress(status.positionMillis / status.durationMillis);
             setCurrentTime(formatTime(status.positionMillis));
         }
     };
 
-    const formatTime = (millis) => {
+    const formatTime = (millis: number) => {
         const minutes = Math.floor(millis / 60000);
         const seconds = Math.floor((millis % 60000) / 1000);
         return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -60,6 +58,8 @@ export default function AudioDetailsScreen() {
         }
     };
 
+    const audioTime = Number(duration);
+
     return (
         <View style={styles.container}>
     
@@ -72,7 +72,7 @@ export default function AudioDetailsScreen() {
                 style={styles.slider}
                 value={progress}
                 minimumValue={0}
-                maximumValue={duration > 0 ? duration : 1}
+                maximumValue={audioTime > 0 ? audioTime : 1}
                 minimumTrackTintColor="#5EA4FF"
                 maximumTrackTintColor="#D3D3D3"
             />

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
+import { RecordingObject } from '../AudioRecord';
 
 const HomeScreen = () => {
 
@@ -28,7 +29,7 @@ const HomeScreen = () => {
     }
 
 
-    const renderItem = (item) => {
+    const renderItem = (item : RecordingObject) => {
         return(
             <View style={styles.audioItem}>
                 <MaterialIcons name="mic" size={40} color="#94A3B8" style={styles.audioIcon} />
@@ -43,7 +44,7 @@ const HomeScreen = () => {
         )
     }
 
-    const openAudioDetails = (audio) => {
+    const openAudioDetails = (audio: RecordingObject) => {
       router.push({
         pathname: '/AudioDetail',
         params: {
